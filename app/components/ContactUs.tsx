@@ -1,29 +1,79 @@
 "use client"
 
-import React from "react"
+import type React from "react"
 
-import { useState, useRef } from "react"
-import { motion, useInView } from "framer-motion"
+import { useState, useRef, useMemo, useEffect } from "react"
+import { motion, useInView, useScroll, useTransform } from "framer-motion"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+
+const contactInfo = [
+  {
+    id: 1,
+    title: "Email Us",
+    value: "hello@poplotus.com",
+    icon: "📧",
+    description: "Drop us a line anytime",
+    color: "from-sage-green to-forest-green",
+  },
+  {
+    id: 2,
+    title: "Call Us",
+    value: "+91 98765 43210",
+    icon: "📞",
+    description: "Mon-Fri, 9AM-6PM IST",
+    color: "from-lotus-pink to-sunset-coral",
+  },
+  {
+    id: 3,
+    title: "Visit Us",
+    value: "Mumbai, Maharashtra",
+    icon: "📍",
+    description: "Come say hello!",
+    color: "from-golden-yellow to-warm-orange",
+  },
+]
 
 export default function ContactUs() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    subject: "",
     message: "",
   })
-  const [focusedField, setFocusedField] = useState<string | null>(null)
   const [hasAnimated, setHasAnimated] = useState(false)
-
   const containerRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(containerRef, { once: false, margin: "-100px" })
 
-  React.useEffect(() => {
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"],
+  })
+
+  const y = useTransform(scrollYProgress, [0, 1], ["5%", "-5%"])
+
+  // Floating communication icons
+  const floatingIcons = useMemo(
+    () =>
+      [...Array(12)].map((_, i) => ({
+        id: i,
+        emoji: ["📧", "📞", "💬", "✉️", "📱", "💌"][Math.floor(Math.random() * 6)],
+        delay: Math.random() * 3,
+        duration: 5 + Math.random() * 3,
+        startX: Math.random() * 100,
+        startY: Math.random() * 100,
+      })),
+    [],
+  )
+
+  useEffect(() => {
     if (isInView) {
       setHasAnimated(true)
     } else {
       const timer = setTimeout(() => {
         setHasAnimated(false)
-      }, 300)
+      }, 200)
       return () => clearTimeout(timer)
     }
   }, [isInView])
@@ -37,218 +87,241 @@ export default function ContactUs() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
     console.log("Form submitted:", formData)
+    // Handle form submission here
   }
 
   return (
     <section
-      id="contact"
       ref={containerRef}
-      className="py-20 bg-gradient-to-b from-sage-green/20 to-creamy-beige relative"
+      className="relative min-h-screen py-20 bg-gradient-to-br from-soft-lavender/30 via-creamy-beige to-sage-green/20 overflow-hidden"
     >
-      {hasAnimated && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {["✉️", "💌", "📝", "💬"].map((icon, i) => (
-            <motion.div
-              key={i}
-              className="absolute text-3xl opacity-10"
-              initial={{
-                x: Math.random() * window.innerWidth,
-                y: window.innerHeight + 100,
-                rotate: 0,
-              }}
-              animate={{
-                x: Math.random() * window.innerWidth,
-                y: -100,
-                rotate: 360,
-              }}
-              transition={{
-                duration: 8 + Math.random() * 4,
-                delay: Math.random() * 3,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-            >
-              {icon}
-            </motion.div>
-          ))}
-        </div>
-      )}
-      <div className="max-w-4xl mx-auto px-6">
-        <motion.div className="text-center mb-16">
-          <motion.h2
-            className="text-5xl md:text-6xl font-bold text-sage-green mb-6"
-            initial={{ opacity: 0, scale: 0.5, rotateX: -90 }}
-            animate={hasAnimated ? { opacity: 1, scale: 1, rotateX: 0 } : { opacity: 0, scale: 0.5, rotateX: -90 }}
-            transition={{ duration: 1, delay: 0.3, type: "spring" }}
+      {/* Floating communication icons */}
+      <div className="absolute inset-0 pointer-events-none">
+        {floatingIcons.map((icon) => (
+          <motion.div
+            key={icon.id}
+            className="absolute text-3xl opacity-20"
+            style={{
+              left: `${icon.startX}%`,
+              top: `${icon.startY}%`,
+            }}
+            animate={
+              hasAnimated
+                ? {
+                    x: [0, 40, -20, 60, -10],
+                    y: [0, -60, 30, -40, 15],
+                    rotate: [0, 180, 360, 540, 720],
+                    scale: [0.6, 1, 0.8, 1.2, 0.7],
+                    opacity: [0.2, 0.4, 0.25, 0.5, 0.15],
+                  }
+                : {}
+            }
+            transition={{
+              duration: icon.duration,
+              delay: icon.delay,
+              repeat: hasAnimated ? Number.POSITIVE_INFINITY : 0,
+              ease: "easeInOut",
+            }}
           >
-            Get in Touch
-          </motion.h2>
-          <p className="text-xl text-earth-brown/70 max-w-2xl mx-auto">
-            Have questions about our products or want to share your PopLotus experience? We'd love to hear from you!
+            {icon.emoji}
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.div style={{ y }} className="container mx-auto px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-5xl md:text-6xl font-bold text-deep-purple mb-6">Get In Touch</h2>
+          <p className="text-xl text-earth-brown/80 max-w-3xl mx-auto">
+            Have questions about our products? Want to share feedback? We'd love to hear from you!
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, x: -100, rotateY: -45 }}
-            animate={hasAnimated ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: -100, rotateY: -45 }}
-            transition={{ duration: 1, delay: 0.5, type: "spring" }}
-          >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="relative">
-                <motion.input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  onFocus={() => setFocusedField("name")}
-                  onBlur={() => setFocusedField(null)}
-                  className="w-full px-4 py-4 bg-white rounded-2xl border-2 border-transparent focus:border-lotus-pink outline-none transition-all duration-300 text-earth-brown"
-                  placeholder="Your Name"
-                  required
-                />
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: focusedField === "name" ? 1.02 : 1,
-                    boxShadow:
-                      focusedField === "name" ? "0 10px 30px rgba(244, 166, 205, 0.2)" : "0 5px 15px rgba(0,0,0,0.1)",
-                  }}
-                  className="absolute inset-0 bg-white rounded-2xl -z-10"
-                />
-              </div>
-
-              <div className="relative">
-                <motion.input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  onFocus={() => setFocusedField("email")}
-                  onBlur={() => setFocusedField(null)}
-                  className="w-full px-4 py-4 bg-white rounded-2xl border-2 border-transparent focus:border-lotus-pink outline-none transition-all duration-300 text-earth-brown"
-                  placeholder="Your Email"
-                  required
-                />
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: focusedField === "email" ? 1.02 : 1,
-                    boxShadow:
-                      focusedField === "email" ? "0 10px 30px rgba(244, 166, 205, 0.2)" : "0 5px 15px rgba(0,0,0,0.1)",
-                  }}
-                  className="absolute inset-0 bg-white rounded-2xl -z-10"
-                />
-              </div>
-
-              <div className="relative">
-                <motion.textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  onFocus={() => setFocusedField("message")}
-                  onBlur={() => setFocusedField(null)}
-                  rows={6}
-                  className="w-full px-4 py-4 bg-white rounded-2xl border-2 border-transparent focus:border-lotus-pink outline-none transition-all duration-300 text-earth-brown resize-none"
-                  placeholder="Your Message"
-                  required
-                />
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: focusedField === "message" ? 1.02 : 1,
-                    boxShadow:
-                      focusedField === "message"
-                        ? "0 10px 30px rgba(244, 166, 205, 0.2)"
-                        : "0 5px 15px rgba(0,0,0,0.1)",
-                  }}
-                  className="absolute inset-0 bg-white rounded-2xl -z-10"
-                />
-              </div>
-
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(244, 166, 205, 0.3)" }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full bg-lotus-pink text-white py-4 rounded-2xl font-semibold text-lg hover:bg-lotus-pink/90 transition-all duration-300 shadow-lg"
-              >
-                Send Message
-              </motion.button>
-            </form>
-          </motion.div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
           {/* Contact Information */}
           <motion.div
-            initial={{ opacity: 0, x: 100, rotateY: 45 }}
-            animate={hasAnimated ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: 100, rotateY: 45 }}
-            transition={{ duration: 1, delay: 0.7, type: "spring" }}
+            initial={{ opacity: 0, x: -100, rotateY: -30 }}
+            animate={hasAnimated ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: -100, rotateY: -30 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
             className="space-y-8"
           >
-            <div className="bg-white rounded-2xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-earth-brown mb-6">Let's Connect</h3>
+            <h3 className="text-3xl font-bold text-earth-brown mb-8">Let's Connect</h3>
 
-              <div className="space-y-6">
-                <motion.div whileHover={{ x: 10 }} className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-lotus-pink/20 rounded-full flex items-center justify-center">
-                    <span className="text-lotus-pink text-xl">📧</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-earth-brown">Email</p>
-                    <p className="text-earth-brown/70">hello@poplotus.com</p>
-                  </div>
-                </motion.div>
+            {contactInfo.map((info, index) => (
+              <motion.div
+                key={info.id}
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                animate={hasAnimated ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 50, scale: 0.9 }}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.4 + index * 0.1,
+                  type: "spring",
+                  stiffness: 120,
+                }}
+                whileHover={{
+                  scale: 1.05,
+                  y: -5,
+                  transition: { duration: 0.3 },
+                }}
+              >
+                <Card
+                  className={`p-6 bg-gradient-to-br ${info.color} border-0 shadow-xl hover:shadow-2xl transition-all duration-300`}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex items-center space-x-4">
+                      <motion.div
+                        animate={hasAnimated ? { rotate: [0, 360], scale: [1, 1.2, 1] } : { rotate: 0, scale: 1 }}
+                        transition={{
+                          duration: 2,
+                          delay: index * 0.5,
+                          repeat: hasAnimated ? Number.POSITIVE_INFINITY : 0,
+                          repeatDelay: 3,
+                        }}
+                        className="text-4xl"
+                      >
+                        {info.icon}
+                      </motion.div>
+                      <div>
+                        <h4 className="text-xl font-bold text-white mb-1">{info.title}</h4>
+                        <p className="text-white/90 font-semibold">{info.value}</p>
+                        <p className="text-white/70 text-sm">{info.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
 
-                <motion.div whileHover={{ x: 10 }} className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-sage-green/20 rounded-full flex items-center justify-center">
-                    <span className="text-sage-green text-xl">📱</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-earth-brown">Phone</p>
-                    <p className="text-earth-brown/70">+1 (555) 123-4567</p>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ x: 10 }} className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-creamy-beige rounded-full flex items-center justify-center">
-                    <span className="text-earth-brown text-xl">📍</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-earth-brown">Address</p>
-                    <p className="text-earth-brown/70">
-                      123 Wellness Street
-                      <br />
-                      Healthy City, HC 12345
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-sage-green/10 to-lotus-pink/10 rounded-2xl p-8">
-              <h4 className="text-xl font-bold text-earth-brown mb-4">Follow Our Journey</h4>
-              <p className="text-earth-brown/70 mb-6">
-                Stay updated with new flavors, recipes, and wellness tips from Poppy & Poppus!
-              </p>
-
+            {/* Social Media Links */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="pt-8"
+            >
+              <h4 className="text-xl font-bold text-earth-brown mb-4">Follow Us</h4>
               <div className="flex space-x-4">
-                {["📘", "📷", "🐦", "📌"].map((icon, index) => (
+                {["📘", "📷", "🐦", "📺"].map((emoji, index) => (
                   <motion.button
                     key={index}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileHover={{ scale: 1.2, rotate: 10 }}
                     whileTap={{ scale: 0.9 }}
-                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:shadow-xl transition-all duration-300"
                   >
-                    <span className="text-xl">{icon}</span>
+                    {emoji}
                   </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Contact Form */}
+          <motion.div
+            initial={{ opacity: 0, x: 100, rotateY: 30 }}
+            animate={hasAnimated ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: 100, rotateY: 30 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <Card className="p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-0">
+                <h3 className="text-3xl font-bold text-earth-brown mb-8">Send us a Message</h3>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                  >
+                    <label className="block text-sm font-semibold text-earth-brown mb-2">Your Name</label>
+                    <Input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-sage-green focus:ring-2 focus:ring-sage-green/20 transition-all duration-300"
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                  >
+                    <label className="block text-sm font-semibold text-earth-brown mb-2">Email Address</label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-sage-green focus:ring-2 focus:ring-sage-green/20 transition-all duration-300"
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 0.8 }}
+                  >
+                    <label className="block text-sm font-semibold text-earth-brown mb-2">Subject</label>
+                    <Input
+                      type="text"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-sage-green focus:ring-2 focus:ring-sage-green/20 transition-all duration-300"
+                      placeholder="What's this about?"
+                      required
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 0.9 }}
+                  >
+                    <label className="block text-sm font-semibold text-earth-brown mb-2">Message</label>
+                    <Textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      rows={5}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-sage-green focus:ring-2 focus:ring-sage-green/20 transition-all duration-300 resize-none"
+                      placeholder="Tell us more..."
+                      required
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 1.0 }}
+                  >
+                    <motion.button
+                      type="submit"
+                      whileHover={{
+                        scale: 1.05,
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-full bg-gradient-to-r from-sage-green to-forest-green text-white py-4 rounded-lg text-lg font-semibold hover:from-sage-green/90 hover:to-forest-green/90 transition-all duration-300 shadow-lg"
+                    >
+                      Send Message 📤
+                    </motion.button>
+                  </motion.div>
+                </form>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }
