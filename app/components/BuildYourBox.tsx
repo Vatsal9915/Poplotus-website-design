@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useRef, useMemo, useCallback } from "react"
-import { motion, useInView, AnimatePresence } from "framer-motion"
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
+import { useState, useRef, useMemo, useEffect } from "react"
+import { motion, useInView, useScroll, useTransform } from "framer-motion"
+import { Card } from "@/components/ui/card"
 
 const availableSnacks = [
   { id: "1", name: "Ashwagandha Calm", color: "bg-purple-200", price: 12 },
@@ -13,13 +13,42 @@ const availableSnacks = [
   { id: "6", name: "Rose Petal", color: "bg-pink-200", price: 15 },
 ]
 
+const boxSizes = [
+  { id: 1, size: "Small", quantity: "3 packs", price: "₹299", emoji: "📦" },
+  { id: 2, size: "Medium", quantity: "6 packs", price: "₹549", emoji: "📦📦" },
+  { id: 3, size: "Large", quantity: "12 packs", price: "₹999", emoji: "📦📦📦" },
+]
+
 export default function BuildYourBox() {
   const [selectedSnacks, setSelectedSnacks] = useState<typeof availableSnacks>([])
+  const [selectedSize, setSelectedSize] = useState<number | null>(null)
+  const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [hasAnimated, setHasAnimated] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(containerRef, { once: false, margin: "-100px" })
 
-  React.useEffect(() => {
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"],
+  })
+
+  const y = useTransform(scrollYProgress, [0, 1], ["10%", "-10%"])
+
+  // Floating ingredient particles
+  const floatingIngredients = useMemo(
+    () =>
+      [...Array(20)].map((_, i) => ({
+        id: i,
+        emoji: ["🌶️", "🧂", "🍅", "🌿", "🔥", "🧀", "🪷", "✨"][Math.floor(Math.random() * 8)],
+        delay: Math.random() * 5,
+        duration: 8 + Math.random() * 4,
+        startX: Math.random() * 100,
+        startY: Math.random() * 100,
+      })),
+    [],
+  )
+
+  useEffect(() => {
     if (isInView) {
       setHasAnimated(true)
     } else {
@@ -30,80 +59,77 @@ export default function BuildYourBox() {
     }
   }, [isInView])
 
-  const handleDragEnd = useCallback(
-    (result: any) => {
-      if (!result.destination) return
+  const handleFlavourSelect = (flavourId: number) => {
+    setSelectedSnacks((prev) =>
+      prev.some((snack) => snack.id === flavourId.toString())
+        ? prev.filter((snack) => snack.id !== flavourId.toString())
+        : [...prev, availableSnacks.find((snack) => snack.id === flavourId.toString())!],
+    )
+  }
 
-      if (result.destination.droppableId === "box" && result.source.droppableId === "snacks") {
-        const snack = availableSnacks.find((s) => s.id === result.draggableId)
-        if (snack && selectedSnacks.length < 6) {
-          setSelectedSnacks((prev) => [...prev, snack])
-        }
-      } else if (result.destination.droppableId === "snacks" && result.source.droppableId === "box") {
-        setSelectedSnacks((prev) => prev.filter((s) => s.id !== result.draggableId))
+  const handleDragStart = (flavourId: number) => {
+    setDraggedItem(flavourId)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+  }
+
+  const handleDrop = () => {
+    if (draggedItem && selectedSnacks.length < 6) {
+      const snack = availableSnacks.find((s) => s.id === draggedItem.toString())
+      if (snack) {
+        setSelectedSnacks((prev) => [...prev, snack])
       }
-    },
-    [selectedSnacks.length],
-  )
+    }
+    setDraggedItem(null)
+  }
 
   const totalPrice = useMemo(() => selectedSnacks.reduce((sum, snack) => sum + snack.price, 0), [selectedSnacks])
 
-  // Reduced floating ingredients for better performance
-  const floatingIngredients = useMemo(
-    () =>
-      ["🌿", "🌸", "🧂", "🍫"].map((ingredient, i) => ({
-        // Reduced from 6 to 4
-        id: i,
-        ingredient,
-        delay: Math.random() * 2,
-        duration: 6 + Math.random() * 2,
-      })),
-    [],
-  )
-
   return (
     <section
-      id="build-box"
       ref={containerRef}
-      className="py-20 bg-gradient-to-b from-creamy-beige to-sage-green/10 relative overflow-hidden"
+      className="relative min-h-screen py-20 bg-gradient-to-br from-golden-yellow/20 via-creamy-beige to-warm-orange/20 overflow-hidden"
     >
-      {/* Optimized floating ingredients */}
-      {hasAnimated && (
-        <div className="absolute inset-0 pointer-events-none">
-          {floatingIngredients.map((item) => (
-            <motion.div
-              key={item.id}
-              className="absolute text-2xl opacity-20"
-              initial={{
-                x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 1200),
-                y: (typeof window !== "undefined" ? window.innerHeight : 800) + 50,
-                rotate: 0,
-                scale: 0.5,
-              }}
-              animate={{
-                x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 1200),
-                y: -50,
-                rotate: 180,
-                scale: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: item.duration,
-                delay: item.delay,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-            >
-              {item.ingredient}
-            </motion.div>
-          ))}
-        </div>
-      )}
+      {/* Floating ingredient particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {floatingIngredients.map((particle) => (
+          <motion.div
+            key={particle.id}
+            className="absolute text-2xl opacity-25"
+            style={{
+              left: `${particle.startX}%`,
+              top: `${particle.startY}%`,
+            }}
+            animate={
+              hasAnimated
+                ? {
+                    x: [0, 60, -40, 100, -30],
+                    y: [0, -100, 60, -80, 40],
+                    rotate: [0, 180, 360, 540, 720],
+                    scale: [0.8, 1.2, 0.6, 1.4, 0.7],
+                    opacity: [0.25, 0.5, 0.2, 0.6, 0.15],
+                  }
+                : {}
+            }
+            transition={{
+              duration: particle.duration,
+              delay: particle.delay,
+              repeat: hasAnimated ? Number.POSITIVE_INFINITY : 0,
+              ease: "easeInOut",
+            }}
+          >
+            {particle.emoji}
+          </motion.div>
+        ))}
+      </div>
 
-      <div className="max-w-7xl mx-auto px-6">
+      <motion.div style={{ y }} className="container mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6 }}
+          initial={{ opacity: 0, y: 50 }}
+          animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+          transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
           <motion.h2
@@ -115,166 +141,217 @@ export default function BuildYourBox() {
             Build Your Own Box
           </motion.h2>
           <motion.p
-            className="text-xl text-earth-brown/70 max-w-3xl mx-auto"
+            className="text-xl text-earth-brown/80 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            Create your perfect snack combination. Drag and drop up to 6 flavors into your custom box.
+            Create your perfect snacking experience. Mix and match flavours, choose your size, and make it uniquely
+            yours.
           </motion.p>
         </motion.div>
 
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Available Snacks */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={hasAnimated ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <h3 className="text-2xl font-bold text-earth-brown mb-6">Available Flavors</h3>
-              <Droppable droppableId="snacks">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="grid grid-cols-2 gap-4">
-                    {availableSnacks.map((snack, index) => (
-                      <Draggable key={snack.id} draggableId={snack.id} index={index}>
-                        {(provided, snapshot) => (
-                          <motion.div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            initial={{
-                              opacity: 0,
-                              y: -100,
-                              rotate: Math.random() * 180,
-                              scale: 0.5,
-                            }}
-                            animate={
-                              hasAnimated
-                                ? {
-                                    opacity: 1,
-                                    y: 0,
-                                    rotate: 0,
-                                    scale: 1,
-                                  }
-                                : {
-                                    opacity: 0,
-                                    y: -100,
-                                    rotate: Math.random() * 180,
-                                    scale: 0.5,
-                                  }
-                            }
-                            transition={{
-                              type: "spring",
-                              damping: 15,
-                              stiffness: 120,
-                              delay: index * 0.1 + 0.6,
-                              duration: 0.8,
-                            }}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            className={`${snack.color} p-4 rounded-2xl cursor-grab active:cursor-grabbing ${
-                              snapshot.isDragging ? "shadow-xl scale-105" : "shadow-md"
-                            } transition-all duration-200`}
-                          >
-                            <div className="text-center">
-                              <h4 className="font-semibold text-earth-brown mb-1">{snack.name}</h4>
-                              <p className="text-sm text-earth-brown/70">${snack.price}</p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </motion.div>
-
-            {/* Your Box */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={hasAnimated ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <h3 className="text-2xl font-bold text-earth-brown mb-6">Your Custom Box</h3>
-              <Droppable droppableId="box">
-                {(provided, snapshot) => (
-                  <motion.div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    animate={
-                      snapshot.isDraggingOver
-                        ? { scale: 1.01, boxShadow: "0 0 20px rgba(244, 166, 205, 0.3)" }
-                        : { scale: 1, boxShadow: "0 5px 15px rgba(0,0,0,0.1)" }
-                    }
-                    transition={{ duration: 0.2 }}
-                    className={`bg-white rounded-3xl p-8 min-h-[400px] border-2 border-dashed transition-all duration-200 ${
-                      snapshot.isDraggingOver ? "border-lotus-pink bg-lotus-pink/5" : "border-sage-green/30"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+          {/* Flavour Selection */}
+          <motion.div
+            initial={{ opacity: 0, x: -100 }}
+            animate={hasAnimated ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <h3 className="text-3xl font-bold text-earth-brown mb-8 text-center">Choose Your Flavours</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {availableSnacks.map((snack, index) => (
+                <motion.div
+                  key={snack.id}
+                  initial={{ opacity: 0, y: 50, rotate: Math.random() * 20 - 10 }}
+                  animate={
+                    hasAnimated
+                      ? { opacity: 1, y: 0, rotate: 0 }
+                      : { opacity: 0, y: 50, rotate: Math.random() * 20 - 10 }
+                  }
+                  transition={{
+                    duration: 0.6,
+                    delay: index * 0.1,
+                    type: "spring",
+                    stiffness: 120,
+                  }}
+                  drag
+                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                  onDragStart={() => handleDragStart(Number(snack.id))}
+                  onDragEnd={handleDragEnd}
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  whileDrag={{ scale: 1.1, rotate: 5, zIndex: 10 }}
+                  className="cursor-grab active:cursor-grabbing"
+                  onClick={() => handleFlavourSelect(Number(snack.id))}
+                >
+                  <Card
+                    className={`p-6 text-center transition-all duration-300 border-2 ${
+                      selectedSnacks.some((s) => s.id === snack.id)
+                        ? `${snack.color} border-white text-white shadow-xl`
+                        : "bg-white border-gray-200 hover:border-sage-green shadow-lg hover:shadow-xl"
                     }`}
                   >
-                    {selectedSnacks.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-center">
-                        <div>
-                          <motion.div
-                            className="text-6xl mb-4"
-                            animate={{ rotate: [0, 5, -5, 0] }}
-                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                          >
-                            📦
-                          </motion.div>
-                          <p className="text-earth-brown/50">Drag flavors here to build your box</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        <AnimatePresence>
-                          {selectedSnacks.map((snack, index) => (
-                            <motion.div
-                              key={`${snack.id}-${index}`}
-                              initial={{ opacity: 0, scale: 0.5, rotate: 90 }}
-                              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                              exit={{ opacity: 0, scale: 0.5, rotate: -90 }}
-                              transition={{ type: "spring", damping: 15, stiffness: 200 }}
-                              className={`${snack.color} p-4 rounded-2xl shadow-md`}
-                            >
-                              <div className="text-center">
-                                <h4 className="font-semibold text-earth-brown mb-1">{snack.name}</h4>
-                                <p className="text-sm text-earth-brown/70">${snack.price}</p>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    )}
-                    {provided.placeholder}
+                    <motion.div
+                      animate={
+                        selectedSnacks.some((s) => s.id === snack.id)
+                          ? { rotate: [0, 360], scale: [1, 1.2, 1] }
+                          : { rotate: 0, scale: 1 }
+                      }
+                      transition={{ duration: 0.6 }}
+                      className="text-4xl mb-2"
+                    >
+                      {snack.id === "1"
+                        ? "🌶️"
+                        : snack.id === "2"
+                          ? "🧂"
+                          : snack.id === "3"
+                            ? "🍅"
+                            : snack.id === "4"
+                              ? "🌿"
+                              : snack.id === "5"
+                                ? "🔥"
+                                : "🧀"}
+                    </motion.div>
+                    <h4
+                      className={`font-semibold ${
+                        selectedSnacks.some((s) => s.id === snack.id) ? "text-white" : "text-earth-brown"
+                      }`}
+                    >
+                      {snack.name}
+                    </h4>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
 
-                    {selectedSnacks.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-8 pt-6 border-t border-sage-green/20"
-                      >
-                        <div className="flex justify-between items-center mb-4">
-                          <span className="text-lg font-semibold text-earth-brown">Total: ${totalPrice}</span>
-                          <span className="text-sm text-earth-brown/70">{selectedSnacks.length}/6 flavors</span>
-                        </div>
+          {/* Box Builder */}
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={hasAnimated ? { opacity: 1, x: 0 } : { opacity: 0, x: 100 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <h3 className="text-3xl font-bold text-earth-brown mb-8 text-center">Your Custom Box</h3>
 
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full bg-lotus-pink text-white py-3 rounded-full font-semibold hover:bg-lotus-pink/90 transition-colors duration-200"
-                        >
-                          Add to Cart
-                        </motion.button>
-                      </motion.div>
-                    )}
+            {/* Size Selection */}
+            <div className="mb-8">
+              <h4 className="text-xl font-semibold text-earth-brown mb-4">Choose Size:</h4>
+              <div className="grid grid-cols-1 gap-3">
+                {boxSizes.map((box, index) => (
+                  <motion.div
+                    key={box.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={hasAnimated ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedSize(box.id)}
+                  >
+                    <Card
+                      className={`p-4 transition-all duration-300 border-2 ${
+                        selectedSize === box.id
+                          ? "bg-sage-green border-sage-green text-white shadow-xl"
+                          : "bg-white border-gray-200 hover:border-sage-green"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{box.emoji}</span>
+                          <div>
+                            <h5 className="font-semibold">{box.size}</h5>
+                            <p className="text-sm opacity-80">{box.quantity}</p>
+                          </div>
+                        </div>
+                        <div className="text-xl font-bold">{box.price}</div>
+                      </div>
+                    </Card>
                   </motion.div>
-                )}
-              </Droppable>
+                ))}
+              </div>
+            </div>
+
+            {/* Drop Zone */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={hasAnimated ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className={`border-4 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
+                draggedItem ? "border-sage-green bg-sage-green/10 scale-105" : "border-gray-300 bg-gray-50"
+              }`}
+            >
+              <motion.div
+                animate={draggedItem ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                transition={{ duration: 0.5, repeat: draggedItem ? Number.POSITIVE_INFINITY : 0 }}
+                className="text-6xl mb-4"
+              >
+                📦
+              </motion.div>
+              <h4 className="text-xl font-semibold text-earth-brown mb-2">
+                {selectedSnacks.length > 0 ? "Your Selection" : "Drag flavours here"}
+              </h4>
+              {selectedSnacks.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mb-4">
+                  {selectedSnacks.map((snack) => (
+                    <motion.span
+                      key={snack.id}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="inline-flex items-center space-x-1 bg-sage-green text-white px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>
+                        {snack.id === "1"
+                          ? "🌶️"
+                          : snack.id === "2"
+                            ? "🧂"
+                            : snack.id === "3"
+                              ? "🍅"
+                              : snack.id === "4"
+                                ? "🌿"
+                                : snack.id === "5"
+                                  ? "🔥"
+                                  : "🧀"}
+                      </span>
+                      <span>{snack.name}</span>
+                      <button
+                        onClick={() => handleFlavourSelect(Number(snack.id))}
+                        className="ml-1 text-white hover:text-red-200"
+                      >
+                        ×
+                      </button>
+                    </motion.span>
+                  ))}
+                </div>
+              )}
+              <p className="text-earth-brown/60">
+                {selectedSnacks.length === 0
+                  ? "Select or drag your favorite flavours to build your custom box"
+                  : `${selectedSnacks.length} flavour${selectedSnacks.length > 1 ? "s" : ""} selected`}
+              </p>
             </motion.div>
-          </div>
-        </DragDropContext>
-      </div>
+
+            {/* Add to Cart Button */}
+            {selectedSnacks.length > 0 && selectedSize && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="mt-8 text-center"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-lotus-pink text-white px-12 py-4 rounded-full text-lg font-semibold hover:bg-lotus-pink/90 transition-colors duration-300 shadow-lg"
+                >
+                  Add to Cart - {boxSizes.find((b) => b.id === selectedSize)?.price}
+                </motion.button>
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
     </section>
   )
 }
