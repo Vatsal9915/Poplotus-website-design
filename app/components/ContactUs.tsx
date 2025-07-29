@@ -12,7 +12,7 @@ const contactInfo = [
   {
     id: 1,
     title: "Email Us",
-    value: "hello@poplotus.com",
+    value: "contact@poplotus.in",
     icon: "📧",
     description: "Drop us a line anytime",
     color: "from-sage-green to-forest-green",
@@ -20,7 +20,7 @@ const contactInfo = [
   {
     id: 2,
     title: "Call Us",
-    value: "+91 98765 43210",
+    value: "+91 90074 08609",
     icon: "📞",
     description: "Mon-Fri, 9AM-6PM IST",
     color: "from-lotus-pink to-sunset-coral",
@@ -28,7 +28,7 @@ const contactInfo = [
   {
     id: 3,
     title: "Visit Us",
-    value: "Mumbai, Maharashtra",
+    value: "Kolkata, West Bengal",
     icon: "📍",
     description: "Come say hello!",
     color: "from-golden-yellow to-warm-orange",
