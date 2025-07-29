@@ -37,7 +37,7 @@ function FloatingMascot({ position, text }: { position: [number, number, number]
 
 const milestones = [
   {
-    year: "2020",
+    year: "2025",
     title: "The Beginning",
     description: "Founded with a mission to make healthy snacking delicious and accessible to everyone.",
     mascot: "Poppy",
@@ -60,7 +60,7 @@ const milestones = [
     quote: "Every great journey begins with a single step - and ours started with a single perfectly roasted makhana!",
   },
   {
-    year: "2021",
+    year: "2025",
     title: "First Flavors",
     description: "Launched our signature Ashwagandha Calm and Turmeric Glow varieties.",
     mascot: "Poppus",
@@ -83,7 +83,7 @@ const milestones = [
     quote: "Flavor is just the beginning - we're crafting experiences that nourish both body and soul!",
   },
   {
-    year: "2022",
+    year: "2025",
     title: "Going Organic",
     description: "Achieved 100% organic certification for all our ingredients and processes.",
     mascot: "Poppy",
@@ -106,7 +106,7 @@ const milestones = [
     quote: "When we choose organic, we're not just feeding our bodies - we're nurturing our planet!",
   },
   {
-    year: "2023",
+    year: "2025",
     title: "Community Love",
     description: "Reached 100,000 happy customers and launched our wellness recipe blog.",
     mascot: "Poppus",
@@ -129,7 +129,7 @@ const milestones = [
     quote: "A community of 100,000 wellness warriors - together we're creating a healthier, happier world!",
   },
   {
-    year: "2024",
+    year: "2025",
     title: "Sustainable Future",
     description: "Introduced eco-friendly packaging and partnered with local farmers.",
     mascot: "Poppy",
